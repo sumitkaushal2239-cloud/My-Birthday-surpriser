@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Romantic Surprise — Open Surprise</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --rose:#d64d5c;
+    --soft-pink:#ffeef2;
+    --overlay-bg: rgba(0,0,0,0.68);
+    /* Default finger target - adjust after testing */
+    --finger-x: 56%;   /* percent from left where ring should land */
+    --finger-y: 62%;   /* percent from top where ring should land */
+    --finger-scale: 0.55; /* final scale for ring when on finger */
+  }
+
+  html,body{height:100%;margin:0;font-family:"Poppins",sans-serif;-webkit-font-smoothing:antialiased;}
+  body{
+    display:flex;align-items:center;justify-content:center;
+    padding:28px;
+    background: linear-gradient(180deg,#fff7f8 0%, #fff 50%);
+    overflow:hidden;
+  }
+
+  /* ========== Greeting card (uses propose bg image) ========== */
+  .greet-wrap{
+    width:min(980px,96%); max-width:980px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,250,250,0.95));
+    border-radius:18px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.18);
+    display:flex; gap:22px; padding:22px; position:relative; overflow:hidden;
+  }
+
+  /* background image area */
+  .greet-wrap::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: url("/* PASTE_PROPOSE_BG_HERE */");
+    background-size:cover; background-position:center;
+    filter: blur(4px) brightness(.62);
+    transform: scale(1.02);
+    z-index:0;
+    opacity:1;
+  }
+  /* vignette */
+  .greet-wrap::after{
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(60% 55% at 50% 38%, rgba(0,0,0,0) 20%, rgba(0,0,0,0.28) 100%);
+    z-index:1; pointer-events:none;
+  }
+
+  .greet-inner{ position:relative; z-index:2; display:flex; gap:18px; align-items:center; width:100%; padding:30px; }
+  .g-left{ flex:1.1; color:#222; }
+  h1{ font-family:'Great Vibes', cursive; color:var(--rose); font-size:3.6rem; margin:0 0 6px; text-shadow:0 6px 18px rgba(214,77,92,0.12); }
+  .lead{ font-size:1rem; color:#222; margin-bottom:14px; line-height:1.45; }
+  .byline{ color:#444; font-weight:600; margin-bottom:18px; }
+
+  .controls{ display:flex; gap:12px; align-items:center; margin-top:6px; }
+  .btn-big{
+    background: linear-gradient(135deg,#ff6a88,#ff90b6 60%);
+    border: none; color:white; padding:18px 36px; border-radius:44px;
+    font-weight:700; font-size:1.1rem; cursor:pointer; box-shadow:0 12px 40px rgba(255,105,140,0.18);
+    transition: transform .28s cubic-bezier(.2,.9,.3,1), box-shadow .28s;
+    display:inline-flex;align-items:center;gap:10px;
+  }
+  .btn-big:hover{ transform:translateY(-6px); box-shadow:0 22px 48px rgba(255,105,140,0.28); }
+  .btn-muted{ background:transparent; border:2px solid rgba(214,77,92,0.12); color:var(--rose); padding:12px 18px; border-radius:28px; cursor:pointer; }
+
+  /* preview column (small portrait) */
+  .preview{
+    width:340px; max-width:36%; display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  .preview .photo{
+    width:260px; height:360px; border-radius:12px; overflow:hidden; box-shadow:0 18px 46px rgba(0,0,0,0.2);
+    border:4px solid rgba(255,255,255,0.6); background:#eee;
+    background-image: url("/* PASTE_PORTRAIT_HERE */");
+    background-size:cover; background-position:center;
+  }
+
+  /* ========== Overlay / cinematic stage ========== */
+  .overlay{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background: var(--overlay-bg); z-index:60; flex-direction:column; padding:20px;
+  }
+  .stage{
+    width:min(860px,94%); max-width:920px; height:min(580px,86vh); border-radius:14px; position:relative;
+    background: linear-gradient(180deg,#2b0c0f, #1f0810 55%);
+    box-shadow:0 40px 120px rgba(0,0,0,0.8); overflow:hidden; display:flex; align-items:center; justify-content:center;
+  }
+  /* romantic wallpaper used in stage (auto-chosen) */
+  .stage .wall{
+    position:absolute; inset:0; background-image: radial-gradient(circle at 30% 35%, rgba(255,200,210,0.12), transparent 10%), url('https://images.unsplash.com/photo-1509592149239-9a2b1d3fbbf2?auto=format&fit=crop&w=1600&q=60');
+    background-size:cover; background-position:center; filter: brightness(.6) blur(1px); opacity:1;
+  }
+
+  /* cinematic light + glow */
+  .stage .halo{ position:absolute; left:50%; top:44%; width:640px; height:420px; transform:translateX(-50%); border-radius:50%;
+    background: radial-gradient(circle, rgba(255,235,210,0.16) 0%, rgba(255,205,210,0.06) 40%, rgba(0,0,0,0) 70%); mix-blend-mode:screen; z-index:6; pointer-events:none;
+  }
+
+  /* realistic box and lid */
+  .cinema-box{
+    width:260px; height:180px; background: linear-gradient(180deg,#58392f,#3a221c);
+    border-radius:12px; position:relative; z-index:10; transform-origin:bottom center; display:flex; align-items:flex-end; justify-content:center; padding-bottom:18px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7), inset 0 -8px 18px rgba(0,0,0,0.25);
+  }
+  .cinema-lid{
+    position:absolute; width:300px; height:92px; left:50%; top:calc(50% - 140px);
+    transform:translateX(-50%); background: linear-gradient(180deg,#7f4f44,#5a2f25);
+    border-radius:14px; transform-origin: bottom center; z-index:11; box-shadow:0 18px 48px rgba(0,0,0,0.6);
+  }
+
+  /* ring image (will animate) */
+  .ring-el{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-10%) scale(.25) rotate(-6deg); width:180px; pointer-events:none; z-index:12; opacity:0;
+    transition: transform 700ms cubic-bezier(.18,.86,.3,1), opacity .28s ease;
+    filter: drop-shadow(0 18px 40px rgba(0,0,0,0.6));
+  }
+
+  /* sparkles canvas */
+  #sparks{ position:absolute; inset:0; z-index:9; pointer-events:none; }
+
+  /* final message */
+  .finish-msg{ position:absolute; bottom:34px; width:100%; text-align:center; color:#fff; font-size:1.2rem; opacity:0; transform:translateY(20px); z-index:20; text-shadow:0 10px 28px rgba(0,0,0,0.5); }
+
+  /* Animations applied by .active class */
+  .overlay.active{ display:flex; }
+  .overlay.active .cinema-lid{ animation:openLid 1100ms cubic-bezier(.2,.95,.2,1) 400ms forwards; }
+  .overlay.active .cinema-box{ animation:boxPop 900ms cubic-bezier(.2,.9,.25,1) 300ms forwards; }
+  .overlay.active .ring-el{ animation:ringRise 2200ms cubic-bezier(.18,.86,.3,1) 900ms forwards; opacity:1; }
+  .overlay.active .finish-msg{ animation:showMsg 900ms ease 2600ms forwards; }
+
+  @keyframes openLid{
+    0%{ transform: translateX(-50%) rotateX(0deg); }
+    60%{ transform: translateX(-50%) rotateX(-92deg); }
+    100%{ transform: translateX(-50%) rotateX(-120deg) translateY(-12px); opacity:1; }
+  }
+  @keyframes boxPop{
+    0%{ transform: translateY(48px) scale(.84); opacity:0; }
+    60%{ transform: translateY(-6px) scale(1.06); opacity:1; }
+    100%{ transform: translateY(0) scale(1); }
+  }
+  @keyframes ringRise{
+    0%{ transform:translate(-50%,-10%) scale(.25) rotate(-6deg); opacity:0; filter: blur(6px); }
+    35%{ transform:translate(-50%,-86%) scale(.9) rotate(-3deg); opacity:1; filter: blur(0); }
+    70%{ transform:translate(-50%,-180%) scale(1.06) rotate(2deg); opacity:1; }
+    85%{ transform:translate(-50%,-210%) scale(1.02) rotate(4deg); }
+    100%{ /* At this point JS will snap it to finger position */ transform:translate(-50%,-230%) scale(1.02) rotate(4deg); }
+  }
+  @keyframes showMsg{ from{ transform:translateY(20px); opacity:0 } to{ transform:translateY(0); opacity:1 } }
+
+  /* final ring landed styles (JS toggles a class) */
+  .ring-on-finger{
+    transition: transform .8s cubic-bezier(.2,.9,.25,1), opacity .6s;
+    transform: translate(var(--fx,0), var(--fy,0)) scale(var(--fs,0.6)) rotate(6deg) !important;
+    opacity:1 !important;
+    filter: drop-shadow(0 18px 40px rgba(0,0,0,0.45)) saturate(1.05) contrast(1.02);
+  }
+
+  /* responsive */
+  @media(max-width:880px){
+    .preview{ display:none; }
+    h1{ font-size:2.8rem; }
+    .btn-big{ padding:16px 26px; font-size:1rem; }
+    .greet-wrap{ padding:18px; }
+  }
+  @media(max-width:480px){
+    h1{ font-size:2.2rem; }
+    .ring-el{ width:120px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="greet-wrap" role="main" aria-labelledby="greetTitle">
+    <div class="greet-inner">
+      <div class="g-left">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="font-size:28px;color:var(--rose)">❤️</div>
+          <div class="byline">For Mehek</div>
+        </div>
+
+        <h1 id="greetTitle">Every love story is beautiful… but ours is my favorite.</h1>
+        <p class="lead">On this special day I bring a little magic — press the big surprise to make the moment unforgettable.</p>
+        <p class="byline">Yours, <strong>Sumit</strong></p>
+
+        <div class="controls">
+          <button class="btn-big" id="openBtn"><span style="font-size:1.25rem">✨</span> Open Surprise</button>
+          <button class="btn-muted" id="hugBtn">Send a hug 🤍</button>
+        </div>
+      </div>
+
+      <div class="preview" aria-hidden="true">
+        <div class="photo" title="Guest of honor"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay / cinematic -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="stage" role="dialog" aria-modal="true" aria-label="Surprise stage">
+      <div class="wall"></div>
+      <div class="halo"></div>
+
+      <canvas id="sparks"></canvas>
+
+      <div class="cinema-box" id="cinemaBox" aria-hidden="true"></div>
+      <div class="cinema-lid" id="cinemaLid" aria-hidden="true"></div>
+
+      <!-- Realistic ring PNG (external free clipart used) -->
+      <img class="ring-el" id="ringEl"
+        src="https://gallery.yopriceville.com/var/albums/Free-Clipart-Pictures/Jewelry-and-Diamonds-PNG/Transparent_Gold_Ring_with_Diamond_Clipart.png?m=1629807808"
+        alt="diamond ring" aria-hidden="true">
+
+      <div class="finish-msg" id="finishMsg">"From this moment on, my heart belongs to you… forever." ❤️</div>
+    </div>
+  </div>
+
+<script>
+/* ---------- quick references ---------- */
+const openBtn = document.getElementById('openBtn');
+const overlay = document.getElementById('overlay');
+const ringEl = document.getElementById('ringEl');
+const sparks = document.getElementById('sparks');
+const finishMsg = document.getElementById('finishMsg');
+const hugBtn = document.getElementById('hugBtn');
+
+/* open surprise */
+openBtn.addEventListener('click', () => {
+  overlay.classList.add('active');
+  overlay.style.display = 'flex';
+  // start sparks and animations
+  startSparks();
+  // after ring-rise animation completes, move ring to finger target
+  setTimeout(() => landRingOnFinger(), 2400);
+});
+
+/* close overlay on outside click or Esc */
+overlay.addEventListener('click', (e) => { if(e.target === overlay) closeOverlay(); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeOverlay(); });
+
+function closeOverlay(){
+  overlay.classList.remove('active');
+  overlay.style.display = 'none';
+  stopSparks();
+  ringEl.classList.remove('ring-on-finger');
+  // reset transform
+  ringEl.style.transform = '';
+  finishMsg.style.opacity = 0;
+}
+
+/* ========== Sparks particle system (simple) ========== */
+let ctx, W, H, particles = [], animating=false;
+function resizeCanvas(){
+  W = sparks.width = window.innerWidth;
+  H = sparks.height = window.innerHeight;
+  ctx = sparks.getContext('2d');
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function spawnBurst(cx,cy,count){
+  for(let i=0;i<count;i++){
+    particles.push({
+      x:cx + rand(-20,20),
+      y:cy + rand(-10,10),
+      vx: rand(-1.6,1.6),
+      vy: rand(-6,-2),
+      life: rand(50,120),
+      age:0,
+      size: rand(1.8,3.8),
+      hue: rand(15,45)
+    });
+  }
+}
+
+function startSparks(){
+  animating=true;
+  spawnBurst(window.innerWidth/2, window.innerHeight/2 + 40, 34);
+  requestAnimationFrame(tick);
+  // more timed bursts
+  setTimeout(()=> spawnBurst(window.innerWidth/2, window.innerHeight/2 + 20, 28), 900);
+  setTimeout(()=> spawnBurst(window.innerWidth/2, window.innerHeight/2 - 10, 22), 1500);
+}
+
+function stopSparks(){ animating=false; particles=[]; if(ctx) ctx.clearRect(0,0,W,H); }
+
+function tick(){
+  if(!animating) return;
+  ctx.clearRect(0,0,W,H);
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.vy += 0.08; p.x += p.vx; p.y += p.vy; p.age++;
+    const life = 1 - p.age/p.life;
+    ctx.beginPath();
+    ctx.fillStyle = `hsla(${p.hue},90%,60%,${Math.max(life,0)})`;
+    ctx.arc(p.x,p.y,p.size*(1+ (1-life)),0,Math.PI*2);
+    ctx.fill();
+    if(p.age > p.life) particles.splice(i,1);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ========== Land ring on finger ===========
+ Approach:
+  - Use CSS variables --finger-x / --finger-y to set final percent position
+  - JS computes pixel coordinates of target relative to viewport and moves ring there
+*/
+function landRingOnFinger(){
+  // compute target in px using CSS var percentages
+  const style = getComputedStyle(document.documentElement);
+  const fx = parseFloat(style.getPropertyValue('--finger-x')) || 56;
+  const fy = parseFloat(style.getPropertyValue('--finger-y')) || 62;
+  const fs = parseFloat(style.getPropertyValue('--finger-scale')) || 0.55;
+
+  const targetX = window.innerWidth * (fx/100);
+  const targetY = window.innerHeight * (fy/100);
+
+  // current ring bounding box center
+  const rect = ringEl.getBoundingClientRect();
+  const curX = rect.left + rect.width/2;
+  const curY = rect.top + rect.height/2;
+
+  // compute translation needed
+  const dx = (targetX - curX);
+  const dy = (targetY - curY);
+
+  // convert to translate() values for ring element (CSS uses current transform translate(-50%,-10%))
+  // We'll apply a final transform using translate + scale
+  // Use CSS custom properties for smoothness
+  ringEl.style.setProperty('--fx', dx + 'px');
+  ringEl.style.setProperty('--fy', dy + 'px');
+  ringEl.style.setProperty('--fs', fs);
+
+  // toggle class that applies transform using these vars
+  // Build the transform string on the fly:
+  ringEl.classList.add('ring-on-finger');
+
+  // reveal final message (already scheduled by CSS animations)
+}
+
+/* quick helper to let user click hug */
+hugBtn.addEventListener('click', ()=> alert('🤍 Sending a virtual hug!'));
+
+/* Prevent page scroll while overlay open on touch */
+document.addEventListener('touchmove', function(e){ if(overlay.style.display === 'flex') e.preventDefault(); }, {passive:false});
+
+/* Optional: autoplay soft music — disabled by default (browsers restrict auto-play). Uncomment to enable, and ensure you host a short mp3 */
+/*
+const audio = new Audio('soft-romantic.mp3');
+audio.loop = true;
+openBtn.addEventListener('click', ()=> audio.play().catch(()=>{}));
+*/
+
+</script>
+</body>
+</html>
